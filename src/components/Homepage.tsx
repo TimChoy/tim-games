@@ -4,7 +4,7 @@ import styles from "@/styles/Homepage.module.css";
 import { Box, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import GameCard from "./GameCard";
-import { IGameCardProps } from "@/common/types";
+import { IGameCardProps } from "@/types/types";
 
 const gameList: IGameCardProps[] = [
   { title: "Infinite TicTacToe", href: "/infinite-tictactoe" },

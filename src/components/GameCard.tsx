@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent, CardActionArea, Typography } from "@mui/material";
-import { IGameCardProps } from "@/common/types";
+import { IGameCardProps } from "@/types/types";
 import Link from "next/link";
 
 const handleCardClick = (props: IGameCardProps) => {
