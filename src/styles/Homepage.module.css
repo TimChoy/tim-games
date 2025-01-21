@@ -1,0 +1,14 @@
+.homepageContainer {
+  display: absolute;
+  margin-top: 64px;
+  width: 100vw;
+  height: calc(100vh - 64px);
+}
+
+.homepage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+}
