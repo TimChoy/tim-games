@@ -3,6 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardActionArea, Typography } from "@mui/material";
 import { IGameCardProps } from "@/common/types";
+import Link from "next/link";
 
 const handleCardClick = (props: IGameCardProps) => {
   console.log(props);
@@ -10,8 +11,10 @@ const handleCardClick = (props: IGameCardProps) => {
 
 export default function GameCard(props: IGameCardProps) {
   return (
-    <Card>
+    <Card raised>
       <CardActionArea
+        LinkComponent={Link}
+        href={props.href}
         onClick={() => handleCardClick(props)}
         sx={{
           height: "100%",
@@ -20,7 +23,7 @@ export default function GameCard(props: IGameCardProps) {
       >
         <CardContent>
           <Typography variant="h5" gutterBottom>
-            Title
+            {props.title}
           </Typography>
         </CardContent>
       </CardActionArea>
