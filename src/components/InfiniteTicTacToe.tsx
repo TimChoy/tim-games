@@ -38,7 +38,7 @@ const diags = [
   [2, 4, 6],
 ];
 
-const initGameState: { state: string; age: number | null }[] = [
+const initGameBoard: { state: string; age: number | null }[] = [
   { state: "", age: null },
   { state: "", age: null },
   { state: "", age: null },
@@ -51,35 +51,54 @@ const initGameState: { state: string; age: number | null }[] = [
 ];
 
 export default function InfiniteTicTacToe() {
-  // const [running, setRunning] = useState<boolean>(false);
+  const [running, setRunning] = useState<boolean>(false);
   const [rulesOpen, setRulesOpen] = useState<boolean>(false);
   const [turn, setTurn] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
   const [gameBoard, setGameBoard] = useState<
     { state: string; age: number | null }[]
-  >(JSON.parse(JSON.stringify(initGameState)));
+  >(JSON.parse(JSON.stringify(initGameBoard)));
 
   // Pusher channels
   const [token, setToken] = useState<string>("");
+  const [playerId, setPlayerId] = useState<string>("");
+  const [playerMove, setPlayerMove] = useState<string | null>(null);
 
   // Form states
   const [showToken, setShowToken] = useState<boolean>(true);
 
   useEffect(() => {
-    if (token.length == 10) {
-      // Reset game
-      handleReset();
+    const randId = Math.random().toString(36).substring(5, 10);
+    console.log("Client id:", randId);
+    setPlayerId(() => randId);
+  }, []);
 
-      const channel = pusherClient
-        .subscribe(`private-${token}`)
-        .bind("tictactoe-move", (data: any) => {
-          setGameBoard(() => data.gameBoard);
-          setTurn(() => data.turn + 1);
-          setWinner(() => data.winner);
-        });
+  // Pusher listener
+  useEffect(() => {
+    if (token.length == 10) {
+      const channel = pusherClient.subscribe(`private-${token}`);
+
+      // Listen to events
+      channel.bind("tictactoe-start", (data: any) => {
+        console.log(data.id, playerId);
+        if (data.id != playerId) {
+          const otherMove = data.playerMove == "X" ? "O" : "X";
+          initGameState(otherMove);
+        }
+      });
+
+      channel.bind("tictactoe-move", (data: any) => {
+        setGameBoard(() => data.gameBoard);
+        setTurn(() => data.turn + 1);
+        setWinner(() => data.winner);
+
+        if (data.winner) {
+          setRunning(() => false);
+        }
+      });
 
       return () => {
-        channel.unbind("tictactoe-move");
+        channel.unbind_all();
         pusherClient.unsubscribe(`private-${token}`);
       };
     }
@@ -89,12 +108,28 @@ export default function InfiniteTicTacToe() {
     };
   }, [token]);
 
-  const handlePost = async (
+  const handleGameStartPOST = async (playerMove: string, id: string) => {
+    const data = await fetch("/api/tictactoe/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: token,
+        playerMove: playerMove,
+        id: id,
+      }),
+    });
+    const json = await data.json();
+    console.log(json);
+  };
+
+  const handleMovePOST = async (
     board: { state: string; age: number | null }[],
     turn: number,
     winningPlayer: string | null
   ) => {
-    const data = await fetch("/api/tictactoe", {
+    const data = await fetch("/api/tictactoe/move", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -126,17 +161,23 @@ export default function InfiniteTicTacToe() {
     };
 
     setGameBoard(() => tempBoard);
+
     const winningPlayer = checkGameEnd(
       index,
       turn % 2 === 0 ? "X" : "O",
       tempBoard
     );
-    console.log("Winner", winningPlayer);
+
+    // Stop game if winner announced
+    if (winningPlayer) {
+      setRunning(() => false);
+    }
+
     setTurn((turn) => turn + 1);
 
     // Only POST if token is valid
     if (token.length == 10) {
-      handlePost(tempBoard, turn, winningPlayer);
+      handleMovePOST(tempBoard, turn, winningPlayer);
     }
   };
 
@@ -211,14 +252,31 @@ export default function InfiniteTicTacToe() {
   const handleRandomizeToken = () => {
     const randToken = Math.random().toString(36).substring(2, 12);
     setToken(() => randToken);
+    setRunning(() => false);
   };
 
-  // Handles reset of game
-  const handleReset = () => {
-    setGameBoard(() => JSON.parse(JSON.stringify(initGameState)));
+  // Handles start/reset of game
+  const handleStartGame = () => {
+    const randMove = Math.random() > 0.5 ? "X" : "O";
+    handleGameStartPOST(randMove, playerId);
+    initGameState(randMove);
+  };
+
+  const initGameState = (move: string) => {
+    setGameBoard(() => JSON.parse(JSON.stringify(initGameBoard)));
     setTurn(() => 0);
     setWinner(() => null);
+    setRunning(() => true);
+    setPlayerMove(() => move);
+    console.log(`You are move ${move}`);
   };
+
+  // const handleReset = () => {
+  //   setGameBoard(() => JSON.parse(JSON.stringify(initGameBoard)));
+  //   setTurn(() => 0);
+  //   setWinner(() => null);
+  //   setRunning(() => true);
+  // };
 
   // Handles rule modal opening
   const handleRulesOpen = () => {
@@ -240,6 +298,11 @@ export default function InfiniteTicTacToe() {
             turn % 2 == 0 ? "X" : "O"
           }`}
         </Typography>
+        <Typography variant="body2" gutterBottom>
+          {playerMove
+            ? `You are player ${playerMove}`
+            : `You are currently not playing.`}
+        </Typography>
         <FormControl variant="outlined" sx={{ marginBottom: "1rem" }}>
           <InputLabel htmlFor="outlined-game-token-controlled">
             Game Token
@@ -249,6 +312,7 @@ export default function InfiniteTicTacToe() {
             type={showToken ? "text" : "password"}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               setToken(() => event.target.value);
+              setRunning(() => false);
             }}
             value={token}
             title="Game Token"
@@ -277,19 +341,23 @@ export default function InfiniteTicTacToe() {
           variant="outlined"
           color="inherit"
           aria-label="tictactoe-button-group"
-          sx={{ marginBottom: "2rem" }}
+          sx={{
+            marginBottom: "2rem",
+          }}
         >
           <Button onClick={handleRulesOpen}>Rules</Button>
-          <Button>Start Game</Button>
+          <Button onClick={handleStartGame} disabled={running}>
+            Start Game
+          </Button>
         </ButtonGroup>
         {winner != null ? (
           <>
             <Typography variant="body2" gutterBottom>
               {`Game over. ${winner} wins!`}
             </Typography>
-            <Button variant="contained" color="inherit" onClick={handleReset}>
+            {/* <Button variant="contained" color="inherit" onClick={}>
               New Game
-            </Button>
+            </Button> */}
           </>
         ) : (
           <Grid
@@ -332,6 +400,9 @@ export default function InfiniteTicTacToe() {
                     <CardActionArea
                       onClick={() => handleGameTurn(index)}
                       sx={{ width: "100%", height: "100%" }}
+                      disabled={
+                        !running || playerMove != (turn % 2 == 0 ? "X" : "O")
+                      }
                     >
                       <CardContent
                         className={
@@ -377,8 +448,8 @@ export default function InfiniteTicTacToe() {
             both players have played 3 moves, the oldest move that was played
             begins to flash. The flashing move will disappear once another move
             is made. Note that the cell that is flashing will disappear before
-            the move is made, so the game doesn&apos;t end if one of the connections
-            is flashing.
+            the move is made, so the game doesn&apos;t end if one of the
+            connections is flashing.
           </Typography>
         </Box>
       </Modal>
