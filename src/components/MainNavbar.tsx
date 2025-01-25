@@ -39,7 +39,13 @@ export default function MainNavbar() {
               aria-label="home-icon"
               className={styles.navbarIconButton}
             >
-              <CasinoIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
+              <CasinoIcon
+                sx={{
+                  display: { xs: "none", md: "flex" },
+                  mr: 1,
+                  color: "white",
+                }}
+              />
             </IconButton>
             <Typography
               variant="h6"
@@ -65,7 +71,13 @@ export default function MainNavbar() {
               aria-label="home-icon"
               className={styles.navbarIconButton}
             >
-              <CasinoIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} />
+              <CasinoIcon
+                sx={{
+                  display: { xs: "flex", md: "none" },
+                  mr: 1,
+                  color: "white",
+                }}
+              />
             </IconButton>
           </Box>
           <Box sx={{ flexGrow: 0, pr: 2 }}>
