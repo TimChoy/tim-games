@@ -51,7 +51,7 @@ const initGameState: { state: string; age: number | null }[] = [
 ];
 
 export default function InfiniteTicTacToe() {
-  const [running, setRunning] = useState<boolean>(false);
+  // const [running, setRunning] = useState<boolean>(false);
   const [rulesOpen, setRulesOpen] = useState<boolean>(false);
   const [turn, setTurn] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
@@ -377,7 +377,7 @@ export default function InfiniteTicTacToe() {
             both players have played 3 moves, the oldest move that was played
             begins to flash. The flashing move will disappear once another move
             is made. Note that the cell that is flashing will disappear before
-            the move is made, so the game doesn't end if one of the connections
+            the move is made, so the game doesn&apos;t end if one of the connections
             is flashing.
           </Typography>
         </Box>
