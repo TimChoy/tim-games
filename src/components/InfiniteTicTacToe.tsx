@@ -254,6 +254,7 @@ export default function InfiniteTicTacToe() {
     const randToken = Math.random().toString(36).substring(2, 12);
     setToken(() => randToken);
     setRunning(() => false);
+    setPlayerMove(() => null);
   };
 
   // Handles start/reset of game
@@ -306,6 +307,7 @@ export default function InfiniteTicTacToe() {
             type={showToken ? "text" : "password"}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               setToken(() => event.target.value);
+              setPlayerMove(() => null);
               setRunning(() => false);
             }}
             value={token}
@@ -345,14 +347,9 @@ export default function InfiniteTicTacToe() {
           </Button>
         </ButtonGroup>
         {winner != null ? (
-          <>
-            <Typography variant="body2" gutterBottom>
-              {`Game over. ${winner} wins!`}
-            </Typography>
-            {/* <Button variant="contained" color="inherit" onClick={}>
-              New Game
-            </Button> */}
-          </>
+          <Typography variant="body2" gutterBottom>
+            {`Game over. ${winner} wins!`}
+          </Typography>
         ) : (
           <Grid
             container
