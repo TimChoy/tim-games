@@ -1,14 +1,23 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { pusherClient } from "@/libs/pusher/client";
 import {
   Box,
+  Button,
   Card,
   CardActionArea,
   CardContent,
+  Divider,
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import styles from "@/styles/InfiniteTicTacToe.module.css";
+import { Visibility, VisibilityOff, Casino } from "@mui/icons-material";
 
 const rows = [
   [0, 1, 2],
@@ -42,7 +51,60 @@ const initGameState: { state: string; age: number | null }[] = [
 export default function InfiniteTicTacToe() {
   const [turn, setTurn] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
-  const [gameBoard, setGameBoard] = useState(initGameState);
+  const [gameBoard, setGameBoard] = useState<
+    { state: string; age: number | null }[]
+  >(JSON.parse(JSON.stringify(initGameState)));
+
+  // Pusher channels
+  const [token, setToken] = useState<string>("");
+
+  // Form states
+  const [showToken, setShowToken] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (token.length == 10) {
+      // Reset game
+      handleReset();
+
+      const channel = pusherClient
+        .subscribe(`private-${token}`)
+        .bind("tictactoe-move", (data: any) => {
+          setGameBoard(() => data.gameBoard);
+          setTurn(() => data.turn + 1);
+          setWinner(() => data.winner);
+        });
+
+      return () => {
+        channel.unbind("tictactoe-move");
+        pusherClient.unsubscribe(`private-${token}`);
+      };
+    }
+
+    return () => {
+      pusherClient.unsubscribe(`private-${token}`);
+    };
+  }, [token]);
+
+  const handlePost = async (
+    board: { state: string; age: number | null }[],
+    turn: number,
+    winningPlayer: string | null
+  ) => {
+    const data = await fetch("/api/tictactoe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: token,
+        board: board,
+        turn: turn,
+        winner: winningPlayer,
+      }),
+    });
+    const json = await data.json();
+    console.log(json);
+  };
 
   const handleGameTurn = (index: number) => {
     // Check if valid move
@@ -58,11 +120,23 @@ export default function InfiniteTicTacToe() {
       state: turn % 2 === 0 ? "X" : "O",
       age: turn + 6,
     };
-    setGameBoard(tempBoard);
-    checkGameEnd(index, turn % 2 === 0 ? "X" : "O", tempBoard);
-    setTurn(turn + 1);
+
+    setGameBoard(() => tempBoard);
+    const winningPlayer = checkGameEnd(
+      index,
+      turn % 2 === 0 ? "X" : "O",
+      tempBoard
+    );
+    console.log("Winner", winningPlayer);
+    setTurn((turn) => turn + 1);
+
+    // Only POST if token is valid
+    if (token.length == 10) {
+      handlePost(tempBoard, turn, winningPlayer);
+    }
   };
 
+  // Helper function to set age of cells
   const handleAge = (board: { state: string; age: number | null }[]) => {
     board = board.map((cell) =>
       cell.age && cell.age <= turn ? { state: "", age: null } : cell
@@ -77,6 +151,7 @@ export default function InfiniteTicTacToe() {
   ) => {
     // We just need to check the row/col/diagonal of the current index
     // Check rows
+    let flag = false;
     rows.forEach((row) => {
       if (
         row.includes(index) &&
@@ -84,7 +159,8 @@ export default function InfiniteTicTacToe() {
           return board[x].state == player;
         })
       ) {
-        setWinner(player);
+        setWinner(() => player);
+        flag = true;
       }
     });
 
@@ -96,7 +172,8 @@ export default function InfiniteTicTacToe() {
           return board[x].state == player;
         })
       ) {
-        setWinner(player);
+        setWinner(() => player);
+        flag = true;
       }
     });
 
@@ -108,9 +185,34 @@ export default function InfiniteTicTacToe() {
           return board[x].state == player;
         })
       ) {
-        setWinner(player);
+        setWinner(() => player);
+        flag = true;
       }
     });
+
+    return flag ? player : null;
+  };
+
+  // Functions for token text form
+  const handleClickShowToken = () => setShowToken((show) => !show);
+
+  const handleMouseDownToken = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+
+  const handleMouseUpToken = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+
+  const handleRandomizeToken = () => {
+    const randToken = Math.random().toString(36).substring(2, 12);
+    setToken(() => randToken);
+  };
+
+  const handleReset = () => {
+    setGameBoard(() => JSON.parse(JSON.stringify(initGameState)));
+    setTurn(() => 0);
+    setWinner(() => null);
   };
 
   return (
@@ -124,10 +226,48 @@ export default function InfiniteTicTacToe() {
             turn % 2 == 0 ? "X" : "O"
           }`}
         </Typography>
+        <FormControl variant="outlined" sx={{ marginBottom: "2rem" }}>
+          <InputLabel htmlFor="outlined-game-token-controlled">
+            Game Token
+          </InputLabel>
+          <OutlinedInput
+            id="outlined-game-token-controlled"
+            type={showToken ? "text" : "password"}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setToken(() => event.target.value);
+            }}
+            value={token}
+            title="Game Token"
+            endAdornment={
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={showToken ? "hide token" : "show token"}
+                  onClick={handleClickShowToken}
+                  onMouseDown={handleMouseDownToken}
+                  onMouseUp={handleMouseUpToken}
+                >
+                  {showToken ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+                <Divider orientation="vertical" />
+                <IconButton
+                  aria-label="Randomize token"
+                  onClick={handleRandomizeToken}
+                >
+                  <Casino />
+                </IconButton>
+              </InputAdornment>
+            }
+          />
+        </FormControl>
         {winner != null ? (
-          <Typography variant="body2" gutterBottom>
-            {`Game over. ${winner} wins!` }
-          </Typography>
+          <>
+            <Typography variant="body2" gutterBottom>
+              {`Game over. ${winner} wins!`}
+            </Typography>
+            <Button variant="contained" color="inherit" onClick={handleReset}>
+              New Game
+            </Button>
+          </>
         ) : (
           <Grid
             container
