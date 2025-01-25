@@ -67,6 +67,7 @@ export default function InfiniteTicTacToe() {
   // Form states
   const [showToken, setShowToken] = useState<boolean>(true);
 
+  // On render, generate client's id
   useEffect(() => {
     const randId = Math.random().toString(36).substring(5, 10);
     console.log("Client id:", randId);
@@ -106,7 +107,7 @@ export default function InfiniteTicTacToe() {
     return () => {
       pusherClient.unsubscribe(`private-${token}`);
     };
-  }, [token]);
+  }, [token, playerId]);
 
   const handleGameStartPOST = async (playerMove: string, id: string) => {
     const data = await fetch("/api/tictactoe/start", {
@@ -270,13 +271,6 @@ export default function InfiniteTicTacToe() {
     setPlayerMove(() => move);
     console.log(`You are move ${move}`);
   };
-
-  // const handleReset = () => {
-  //   setGameBoard(() => JSON.parse(JSON.stringify(initGameBoard)));
-  //   setTurn(() => 0);
-  //   setWinner(() => null);
-  //   setRunning(() => true);
-  // };
 
   // Handles rule modal opening
   const handleRulesOpen = () => {
