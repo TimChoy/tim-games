@@ -4,6 +4,7 @@ import { pusherClient } from "@/libs/pusher/client";
 import {
   Box,
   Button,
+  ButtonGroup,
   Card,
   CardActionArea,
   CardContent,
@@ -12,6 +13,7 @@ import {
   IconButton,
   InputAdornment,
   InputLabel,
+  Modal,
   OutlinedInput,
   Typography,
 } from "@mui/material";
@@ -49,6 +51,8 @@ const initGameState: { state: string; age: number | null }[] = [
 ];
 
 export default function InfiniteTicTacToe() {
+  const [running, setRunning] = useState<boolean>(false);
+  const [rulesOpen, setRulesOpen] = useState<boolean>(false);
   const [turn, setTurn] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
   const [gameBoard, setGameBoard] = useState<
@@ -209,10 +213,20 @@ export default function InfiniteTicTacToe() {
     setToken(() => randToken);
   };
 
+  // Handles reset of game
   const handleReset = () => {
     setGameBoard(() => JSON.parse(JSON.stringify(initGameState)));
     setTurn(() => 0);
     setWinner(() => null);
+  };
+
+  // Handles rule modal opening
+  const handleRulesOpen = () => {
+    setRulesOpen(true);
+  };
+
+  const handleRulesClose = () => {
+    setRulesOpen(false);
   };
 
   return (
@@ -226,7 +240,7 @@ export default function InfiniteTicTacToe() {
             turn % 2 == 0 ? "X" : "O"
           }`}
         </Typography>
-        <FormControl variant="outlined" sx={{ marginBottom: "2rem" }}>
+        <FormControl variant="outlined" sx={{ marginBottom: "1rem" }}>
           <InputLabel htmlFor="outlined-game-token-controlled">
             Game Token
           </InputLabel>
@@ -259,6 +273,15 @@ export default function InfiniteTicTacToe() {
             }
           />
         </FormControl>
+        <ButtonGroup
+          variant="outlined"
+          color="inherit"
+          aria-label="tictactoe-button-group"
+          sx={{ marginBottom: "2rem" }}
+        >
+          <Button onClick={handleRulesOpen}>Rules</Button>
+          <Button>Start Game</Button>
+        </ButtonGroup>
         {winner != null ? (
           <>
             <Typography variant="body2" gutterBottom>
@@ -333,6 +356,32 @@ export default function InfiniteTicTacToe() {
           </Grid>
         )}
       </Box>
+      <Modal open={rulesOpen} onClose={handleRulesClose}>
+        <Box
+          className={styles.modalContainer}
+          sx={{ bgcolor: "background.paper", border: "2px solid #000" }}
+        >
+          <Typography
+            id="modal-rules-title"
+            variant="h6"
+            component="h2"
+            sx={{ textAlign: "center" }}
+            gutterBottom
+          >
+            Infinite TicTacToe Rules
+          </Typography>
+          <Typography id="modal-rules-body" variant="body2">
+            How to play:
+            <br />
+            The game follows the standard rules of regular tictactoe, but after
+            both players have played 3 moves, the oldest move that was played
+            begins to flash. The flashing move will disappear once another move
+            is made. Note that the cell that is flashing will disappear before
+            the move is made, so the game doesn't end if one of the connections
+            is flashing.
+          </Typography>
+        </Box>
+      </Modal>
     </div>
   );
 }
