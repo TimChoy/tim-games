@@ -274,7 +274,13 @@ export default function InfiniteTicTacToe() {
     setTurn(() => 0);
     setWinner(() => null);
     setRunning(() => true);
-    setPlayerMove(() => move);
+    if (token.length == 10) {
+      // Multiplayer game, randomized move
+      setPlayerMove(() => move);
+    } else {
+      // Local game, game must start with player X
+      setPlayerMove(() => "X");
+    }
     console.log(`You are move ${move}`);
   };
 
@@ -300,7 +306,9 @@ export default function InfiniteTicTacToe() {
         </Typography>
         <Typography variant="body2" gutterBottom>
           {playerMove
-            ? `You are player ${playerMove}`
+            ? token.length == 10
+              ? `You are player ${playerMove}`
+              : "This is a local game."
             : `You are currently not playing.`}
         </Typography>
         <FormControl variant="outlined" sx={{ marginBottom: "1rem" }}>
