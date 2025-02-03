@@ -1,4 +1,4 @@
-import InfiniteTicTacToe from "@/components/InfiniteTicTacToe";
+import InfiniteTicTacToe from "@/components/infinite-tictactoe/InfiniteTicTacToe";
 
 export default function InfiniteTictacToePage() {
   return (
