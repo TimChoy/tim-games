@@ -2,7 +2,6 @@ interface IQueue<T> {
   enqueue(item: T): void;
   dequeue(): T | undefined;
   size(): number;
-  list(): T[];
 }
 
 export class Queue<T> implements IQueue<T> {
@@ -20,9 +19,5 @@ export class Queue<T> implements IQueue<T> {
 
   size(): number {
     return this.queue.length;
-  }
-
-  list(): T[] {
-    return this.queue;
   }
 }
