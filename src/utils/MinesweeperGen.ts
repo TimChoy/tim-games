@@ -1,4 +1,4 @@
-var _ = require("lodash");
+import { sampleSize, range } from "lodash";
 
 export function MinesweeperGen(width: number, height: number, mines: number) {
   // Initialize matrix
@@ -9,7 +9,7 @@ export function MinesweeperGen(width: number, height: number, mines: number) {
   }
 
   // Generate, place mines and adjacent numbered squares
-  const mineList: number[] = _.sampleSize(_.range(0, width * height), mines);
+  const mineList: number[] = sampleSize(range(0, width * height), mines);
   mineList.forEach((loc) => {
     const row = Math.floor(loc / width);
     const col = loc % width;
