@@ -15,12 +15,16 @@ import {
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { MinesweeperGen } from "@/utils/MinesweeperGen";
+import { Queue } from "@/types/Queue";
 
-const cellSize = 30;
+const CELL_SIZE = 40;
 
 export default function Minesweeper() {
   const [difficulty, setDifficulty] = useState<string>("easy");
   const [running, setRunning] = useState<boolean>(false);
+  const [board, setBoard] = useState<number[][]>([]);
+  const [seen, setSeen] = useState<boolean[][]>([]);
 
   // Variables for game board
   const [width, setWidth] = useState<number>(5);
@@ -91,7 +95,67 @@ export default function Minesweeper() {
     setWidth(() => w);
     setHeight(() => h);
     setMines(() => m);
+    setBoard(() => MinesweeperGen(w, h, m));
+    // Initialize seen array for board
+    const initSeenArray = Array.from(Array(h)).map(() => Array(w).fill(false));
+    setSeen(() => [...initSeenArray]);
     setRunning(() => true);
+  };
+
+  const handleCellClick = (row: number, col: number) => {
+    const tempSeen = [...seen];
+    tempSeen[row][col] = true;
+    // If seen had no nearby mines, reveal neighbours recursively
+    if (board[row][col] == 0) {
+      const q = new Queue<[number, number]>();
+      q.enqueue([row, col]);
+      while (q.size() > 0) {
+        const cell = q.dequeue();
+        if (cell != undefined) {
+          const neighbours = [
+            [cell[0] - 1, cell[1] - 1],
+            [cell[0] - 1, cell[1]],
+            [cell[0] - 1, cell[1] + 1],
+            [cell[0], cell[1] - 1],
+            [cell[0], cell[1] + 1],
+            [cell[0] + 1, cell[1] - 1],
+            [cell[0] + 1, cell[1]],
+            [cell[0] + 1, cell[1] + 1],
+          ];
+          neighbours.forEach((n) => {
+            if (
+              0 <= n[0] &&
+              n[0] < height &&
+              0 <= n[1] &&
+              n[1] < width &&
+              !tempSeen[n[0]][n[1]]
+            ) {
+              tempSeen[n[0]][n[1]] = true;
+              if (board[n[0]][n[1]] == 0) {
+                q.enqueue([n[0], n[1]]);
+              }
+            }
+          });
+        }
+      }
+    }
+    setSeen(() => tempSeen);
+  };
+
+  const cellContent = (row: number, col: number, cell: number) => {
+    if (seen[row][col]) {
+      switch (cell) {
+        case 9:
+          // Bomb
+          return "*";
+        case 0:
+          // Empty
+          return "";
+        default:
+          return cell;
+      }
+    }
+    return "";
   };
 
   return (
@@ -129,6 +193,7 @@ export default function Minesweeper() {
                   value="custom"
                   control={<Radio />}
                   label="Custom"
+                  disabled // TODO
                 />
               </RadioGroup>
             </FormControl>
@@ -194,34 +259,49 @@ export default function Minesweeper() {
                   borderBottom: "var(--Grid-borderWidth) solid",
                   borderColor: "divider",
                 },
-                maxWidth: `${cellSize * width + 2}px`,
+                maxWidth: `${CELL_SIZE * width + 2}px`,
+                marginBottom: "2rem",
               }}
             >
-              {Array.from(Array(width * height).keys()).map((_, index) => (
-                <Grid
-                  key={index}
-                  size={1}
-                  height={cellSize}
-                  width={cellSize}
-                  display="flex"
-                  justifyContent="center"
-                  alignItems="center"
-                >
-                  <Card
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
+              {board.map((data, row) =>
+                data.map((cell, col) => (
+                  <Grid
+                    key={`${row}${col}`}
+                    size={1}
+                    height={CELL_SIZE}
+                    width={CELL_SIZE}
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
                   >
-                    <CardActionArea sx={{ width: "100%", height: "100%" }}>
-                      <CardContent>{""}</CardContent>
-                    </CardActionArea>
-                  </Card>
-                </Grid>
-              ))}
+                    <Card
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <CardActionArea
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: seen[row][col] ? "grey" : "",
+                        }}
+                        onClick={() => handleCellClick(row, col)}
+                        disabled={seen[row][col]}
+                      >
+                        <CardContent
+                          sx={{ color: "black" }}
+                        >
+                          {cellContent(row, col, cell)}
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                ))
+              )}
             </Grid>
           </>
         )}
