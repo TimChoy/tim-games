@@ -8,6 +8,7 @@
 ## Minesweeper
 
 - Implement game mechanics
+  - Handle first uncovered square
   - Flag functionality
   - Game ending checks
     - Winning game
