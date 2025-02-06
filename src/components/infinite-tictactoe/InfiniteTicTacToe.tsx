@@ -57,7 +57,7 @@ export default function InfiniteTicTacToe() {
   const [winner, setWinner] = useState<string | null>(null);
   const [gameBoard, setGameBoard] = useState<
     { state: string; age: number | null }[]
-  >(JSON.parse(JSON.stringify(initGameBoard)));
+  >([...initGameBoard]);
 
   // Pusher channels
   const [token, setToken] = useState<string>("");
@@ -179,6 +179,9 @@ export default function InfiniteTicTacToe() {
     // Only POST if token is valid
     if (token.length == 10) {
       handleMovePOST(tempBoard, turn, winningPlayer);
+    } else {
+      // Swap move if playing locally
+      setPlayerMove(() => (playerMove == "X" ? "O" : "X"));
     }
   };
 
@@ -260,16 +263,24 @@ export default function InfiniteTicTacToe() {
   // Handles start/reset of game
   const handleStartGame = () => {
     const randMove = Math.random() > 0.5 ? "X" : "O";
-    handleGameStartPOST(randMove, playerId);
+    if (token.length == 10) {
+      handleGameStartPOST(randMove, playerId);
+    }
     initGameState(randMove);
   };
 
   const initGameState = (move: string) => {
-    setGameBoard(() => JSON.parse(JSON.stringify(initGameBoard)));
+    setGameBoard(() => [...initGameBoard]);
     setTurn(() => 0);
     setWinner(() => null);
     setRunning(() => true);
-    setPlayerMove(() => move);
+    if (token.length == 10) {
+      // Multiplayer game, randomized move
+      setPlayerMove(() => move);
+    } else {
+      // Local game, game must start with player X
+      setPlayerMove(() => "X");
+    }
     console.log(`You are move ${move}`);
   };
 
@@ -295,7 +306,9 @@ export default function InfiniteTicTacToe() {
         </Typography>
         <Typography variant="body2" gutterBottom>
           {playerMove
-            ? `You are player ${playerMove}`
+            ? token.length == 10
+              ? `You are player ${playerMove}`
+              : "This is a local game."
             : `You are currently not playing.`}
         </Typography>
         <FormControl variant="outlined" sx={{ marginBottom: "1rem" }}>
@@ -391,6 +404,7 @@ export default function InfiniteTicTacToe() {
                     <CardActionArea
                       onClick={() => handleGameTurn(index)}
                       sx={{ width: "100%", height: "100%" }}
+                      // Disabled if not running or not your turn
                       disabled={
                         !running || playerMove != (turn % 2 == 0 ? "X" : "O")
                       }
