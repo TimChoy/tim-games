@@ -25,6 +25,8 @@ export default function Minesweeper() {
   const [running, setRunning] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [seen, setSeen] = useState<boolean[][]>([]);
+  const [flagCount, setFlagCount] = useState<number>(0);
+  const [flag, setFlag] = useState<boolean[][]>([]);
 
   // Variables for game board
   const [width, setWidth] = useState<number>(5);
@@ -42,6 +44,13 @@ export default function Minesweeper() {
       setMaxMines(() => customWidth * customHeight - 1);
     }
   }, [customWidth, customHeight]);
+
+  // Check victory condition
+  useEffect(() => {
+    if (mines == flagCount) {
+      console.log("Check victory condition");
+    }
+  }, [mines, flagCount]);
 
   const handleDifficultyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDifficulty(() => (e.target as HTMLInputElement).value);
@@ -98,51 +107,89 @@ export default function Minesweeper() {
     setBoard(() => MinesweeperGen(w, h, m));
     // Initialize seen array for board
     const initSeenArray = Array.from(Array(h)).map(() => Array(w).fill(false));
+    const initFlagArray = Array.from(Array(h)).map(() => Array(w).fill(false));
     setSeen(() => [...initSeenArray]);
+    setFlagCount(() => 0);
+    setFlag(() => [...initFlagArray]);
     setRunning(() => true);
   };
 
-  const handleCellClick = (row: number, col: number) => {
-    const tempSeen = [...seen];
-    tempSeen[row][col] = true;
-    // If seen had no nearby mines, reveal neighbours recursively
-    if (board[row][col] == 0) {
-      const q = new Queue<[number, number]>();
-      q.enqueue([row, col]);
-      while (q.size() > 0) {
-        const cell = q.dequeue();
-        if (cell != undefined) {
-          const neighbours = [
-            [cell[0] - 1, cell[1] - 1],
-            [cell[0] - 1, cell[1]],
-            [cell[0] - 1, cell[1] + 1],
-            [cell[0], cell[1] - 1],
-            [cell[0], cell[1] + 1],
-            [cell[0] + 1, cell[1] - 1],
-            [cell[0] + 1, cell[1]],
-            [cell[0] + 1, cell[1] + 1],
-          ];
-          neighbours.forEach((n) => {
-            if (
-              0 <= n[0] &&
-              n[0] < height &&
-              0 <= n[1] &&
-              n[1] < width &&
-              !tempSeen[n[0]][n[1]]
-            ) {
-              tempSeen[n[0]][n[1]] = true;
-              if (board[n[0]][n[1]] == 0) {
-                q.enqueue([n[0], n[1]]);
+  const handleCellClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    row: number,
+    col: number
+  ) => {
+    if (event.button === 2) {
+      // Right mouse button
+      event.preventDefault();
+      const tempFlag = flag;
+      tempFlag[row][col] = !tempFlag[row][col];
+      // Increment count if flag is added, otherwise decrement
+      if (tempFlag[row][col]) {
+        setFlagCount((flagCount) => flagCount + 1);
+      } else {
+        setFlagCount((flagCount) => flagCount - 1);
+      }
+      setFlag(() => [...tempFlag]);
+    } else {
+      // Left mouse button
+      // Ignore click if flag is at the location
+      if (flag[row][col]) {
+        return;
+      }
+
+      const tempSeen = [...seen];
+      tempSeen[row][col] = true;
+      // If cell is a mine, end game
+      if (board[row][col] == 9) {
+        setRunning(() => false);
+        // TODO: Create end screen
+        return;
+      }
+
+      // If seen had no nearby mines, reveal neighbours recursively
+      if (board[row][col] == 0) {
+        const q = new Queue<[number, number]>();
+        q.enqueue([row, col]);
+        while (q.size() > 0) {
+          const cell = q.dequeue();
+          if (cell != undefined) {
+            const neighbours = [
+              [cell[0] - 1, cell[1] - 1],
+              [cell[0] - 1, cell[1]],
+              [cell[0] - 1, cell[1] + 1],
+              [cell[0], cell[1] - 1],
+              [cell[0], cell[1] + 1],
+              [cell[0] + 1, cell[1] - 1],
+              [cell[0] + 1, cell[1]],
+              [cell[0] + 1, cell[1] + 1],
+            ];
+            neighbours.forEach((n) => {
+              if (
+                0 <= n[0] &&
+                n[0] < height &&
+                0 <= n[1] &&
+                n[1] < width &&
+                !tempSeen[n[0]][n[1]] &&
+                !flag[n[0]][n[1]]
+              ) {
+                tempSeen[n[0]][n[1]] = true;
+                if (board[n[0]][n[1]] == 0) {
+                  q.enqueue([n[0], n[1]]);
+                }
               }
-            }
-          });
+            });
+          }
         }
       }
+      setSeen(() => tempSeen);
     }
-    setSeen(() => tempSeen);
   };
 
   const cellContent = (row: number, col: number, cell: number) => {
+    if (flag[row][col]) {
+      return "F";
+    }
     if (seen[row][col]) {
       switch (cell) {
         case 9:
@@ -241,10 +288,9 @@ export default function Minesweeper() {
           </>
         ) : (
           <>
-            <Typography
-              variant="body2"
-              gutterBottom
-            >{`Mines remaining: ${mines}`}</Typography>
+            <Typography variant="body2" gutterBottom>{`Mines remaining: ${
+              mines - flagCount
+            }`}</Typography>
             <Grid
               container
               columns={width}
@@ -289,11 +335,16 @@ export default function Minesweeper() {
                           height: "100%",
                           backgroundColor: seen[row][col] ? "grey" : "",
                         }}
-                        onClick={() => handleCellClick(row, col)}
+                        onClick={(event: React.MouseEvent<HTMLButtonElement>) =>
+                          handleCellClick(event, row, col)
+                        }
+                        onContextMenu={(
+                          event: React.MouseEvent<HTMLButtonElement>
+                        ) => handleCellClick(event, row, col)}
                         disabled={seen[row][col]}
                       >
                         <CardContent
-                          sx={{ color: "black" }}
+                          sx={{ color: flag[row][col] ? "red" : "black" }}
                         >
                           {cellContent(row, col, cell)}
                         </CardContent>

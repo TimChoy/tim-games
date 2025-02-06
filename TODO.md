@@ -9,10 +9,9 @@
 
 - Implement game mechanics
   - Handle first uncovered square
-  - Flag functionality
   - Game ending checks
     - Winning game
-    - Losing game
+    - Losing game (Create end screen)
 - Implement board generation validation
 - **Stretch goal:** Implement a timer
 - Implement custom mode
