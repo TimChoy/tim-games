@@ -23,10 +23,12 @@ const CELL_SIZE = 40;
 export default function Minesweeper() {
   const [difficulty, setDifficulty] = useState<string>("easy");
   const [running, setRunning] = useState<boolean>(false);
+  const [gameEnd, setGameEnd] = useState<boolean>(false);
+  const [victory, setVictory] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [seen, setSeen] = useState<boolean[][]>([]);
   const [flagCount, setFlagCount] = useState<number>(0);
-  const [flag, setFlag] = useState<boolean[][]>([]);
+  const [flag, setFlag] = useState<number[][]>([]);
 
   // Variables for game board
   const [width, setWidth] = useState<number>(5);
@@ -48,9 +50,14 @@ export default function Minesweeper() {
   // Check victory condition
   useEffect(() => {
     if (mines == flagCount) {
-      console.log("Check victory condition");
+      console.log("Max mine count");
+      if (flag.every((item) => board[item[0]][item[1]] === 9)) {
+        console.log("Game over: player wins");
+        setGameEnd(() => true);
+        setVictory(() => true);
+      }
     }
-  }, [mines, flagCount]);
+  }, [mines, flagCount, board, flag]);
 
   const handleDifficultyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDifficulty(() => (e.target as HTMLInputElement).value);
@@ -80,6 +87,10 @@ export default function Minesweeper() {
     return mines;
   };
 
+  const handleNewGame = () => {
+    setRunning(() => false);
+  };
+
   const handleGameStart = () => {
     switch (difficulty) {
       case "easy":
@@ -107,11 +118,18 @@ export default function Minesweeper() {
     setBoard(() => MinesweeperGen(w, h, m));
     // Initialize seen array for board
     const initSeenArray = Array.from(Array(h)).map(() => Array(w).fill(false));
-    const initFlagArray = Array.from(Array(h)).map(() => Array(w).fill(false));
     setSeen(() => [...initSeenArray]);
     setFlagCount(() => 0);
-    setFlag(() => [...initFlagArray]);
+    setFlag(() => []);
     setRunning(() => true);
+    setGameEnd(() => false);
+    setVictory(() => false);
+  };
+
+  const contains = (arr: number[][], row: number, col: number) => {
+    return arr.some((item) => {
+      return item[0] === row && item[1] === col;
+    });
   };
 
   const handleCellClick = (
@@ -122,19 +140,22 @@ export default function Minesweeper() {
     if (event.button === 2) {
       // Right mouse button
       event.preventDefault();
-      const tempFlag = flag;
-      tempFlag[row][col] = !tempFlag[row][col];
       // Increment count if flag is added, otherwise decrement
-      if (tempFlag[row][col]) {
+      if (!contains(flag, row, col)) {
         setFlagCount((flagCount) => flagCount + 1);
+        setFlag((flag) => [...flag, [row, col]]);
       } else {
         setFlagCount((flagCount) => flagCount - 1);
+        setFlag((flag) =>
+          flag.filter((item) => {
+            return item[0] !== row || item[1] !== col;
+          })
+        );
       }
-      setFlag(() => [...tempFlag]);
     } else {
       // Left mouse button
       // Ignore click if flag is at the location
-      if (flag[row][col]) {
+      if (contains(flag, row, col)) {
         return;
       }
 
@@ -142,8 +163,7 @@ export default function Minesweeper() {
       tempSeen[row][col] = true;
       // If cell is a mine, end game
       if (board[row][col] == 9) {
-        setRunning(() => false);
-        // TODO: Create end screen
+        setGameEnd(() => true);
         return;
       }
 
@@ -171,7 +191,7 @@ export default function Minesweeper() {
                 0 <= n[1] &&
                 n[1] < width &&
                 !tempSeen[n[0]][n[1]] &&
-                !flag[n[0]][n[1]]
+                !contains(flag, n[0], n[1])
               ) {
                 tempSeen[n[0]][n[1]] = true;
                 if (board[n[0]][n[1]] == 0) {
@@ -187,7 +207,12 @@ export default function Minesweeper() {
   };
 
   const cellContent = (row: number, col: number, cell: number) => {
-    if (flag[row][col]) {
+    // Override if game end (show all)
+    if (gameEnd) {
+      return cell === 9 ? cell : "";
+    }
+
+    if (contains(flag, row, col)) {
       return "F";
     }
     if (seen[row][col]) {
@@ -210,6 +235,13 @@ export default function Minesweeper() {
       <Box className={styles.minesweeper} sx={{ flexGrow: 1 }}>
         <Typography variant="h2" gutterBottom>
           Minesweeper
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          {gameEnd
+            ? victory
+              ? "Congratulations, you win!"
+              : "Unfortunately you lost."
+            : ""}
         </Typography>
         {!running ? (
           <>
@@ -341,10 +373,16 @@ export default function Minesweeper() {
                         onContextMenu={(
                           event: React.MouseEvent<HTMLButtonElement>
                         ) => handleCellClick(event, row, col)}
-                        disabled={seen[row][col]}
+                        disabled={gameEnd || seen[row][col]}
                       >
                         <CardContent
-                          sx={{ color: flag[row][col] ? "red" : "black" }}
+                          sx={{
+                            color:
+                              contains(flag, row, col) ||
+                              (gameEnd && cell === 9)
+                                ? "red"
+                                : "black",
+                          }}
                         >
                           {cellContent(row, col, cell)}
                         </CardContent>
@@ -354,6 +392,18 @@ export default function Minesweeper() {
                 ))
               )}
             </Grid>
+            {/* New Game button */}
+            {gameEnd ? (
+              <Button
+                variant="outlined"
+                sx={{ marginTop: "1rem" }}
+                onClick={handleNewGame}
+              >
+                New Game
+              </Button>
+            ) : (
+              <></>
+            )}
           </>
         )}
       </Box>
