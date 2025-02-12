@@ -74,6 +74,12 @@ export default function Minesweeper() {
     };
   }, [timerRunning]);
 
+  const generateTimeString = () => {
+    const minutes = Math.floor(time / 60);
+    const seconds = time - minutes * 60;
+    return `${minutes == 0 ? "" : minutes + "m"} ${seconds}s`;
+  };
+
   useEffect(() => {
     if (customWidth != null && customHeight != null) {
       setMaxMines(() => customWidth * customHeight - 1);
@@ -362,7 +368,9 @@ export default function Minesweeper() {
         ) : (
           <>
             <Typography variant="body2" gutterBottom>
-              {`Mines remaining: ${mines - flagCount}. Time Elapsed: ${time}s`}
+              {`Mines remaining: ${
+                mines - flagCount
+              }. Time Elapsed: ${generateTimeString()}`}
             </Typography>
             <Grid
               container
