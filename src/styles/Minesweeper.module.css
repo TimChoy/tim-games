@@ -1,0 +1,13 @@
+.minesweeperContainer {
+  margin-top: 70px;
+  width: 100vw;
+  height: calc(100vh - 70px);
+}
+
+.minesweeper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+}

@@ -8,7 +8,7 @@ import { IGameCardProps } from "@/types/types";
 
 const gameList: IGameCardProps[] = [
   { title: "Infinite TicTacToe", href: "/infinite-tictactoe" },
-  { title: "Game 2", href: "/" },
+  { title: "Minesweeper", href: "/minesweeper" },
   { title: "Game 3", href: "/" },
 ];
 

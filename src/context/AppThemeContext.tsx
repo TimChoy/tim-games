@@ -19,14 +19,7 @@ const AppThemeProvider = (props: any) => {
           disableCssColorScheme: true,
         },
         palette: {
-          primary: {
-            main: "rgb(10, 18, 42)",
-            contrastText: "rgb(255, 255, 255)",
-          },
-          secondary: {
-            main: "rgb(27, 59, 111)",
-            contrastText: "rgb(255, 255, 255)",
-          },
+          mode: "dark",   
         },
         colorSchemes: {
           light: {
