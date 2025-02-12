@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Minesweeper.module.css";
 import {
   Box,
@@ -41,6 +41,39 @@ export default function Minesweeper() {
   const [customHeight, setCustomHeight] = useState<number>(5);
   const [customMines, setCustomMines] = useState<number>(10);
 
+  // Variables for timer
+  const [time, setTime] = useState<number>(0);
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const startTimeRef = useRef(0);
+  const intervalRef = useRef<NodeJS.Timeout>(null);
+
+  const startTimer = () => {
+    startTimeRef.current = Date.now() - time * 100;
+    intervalRef.current = setInterval(() => {
+      setTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    setTimerRunning(() => true);
+  };
+
+  const resetTimer = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+    }
+    setTime(() => 0);
+    setTimerRunning(() => false);
+  };
+
+  useEffect(() => {
+    if (timerRunning) {
+      startTimer();
+    }
+    return () => {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [timerRunning]);
+
   useEffect(() => {
     if (customWidth != null && customHeight != null) {
       setMaxMines(() => customWidth * customHeight - 1);
@@ -55,6 +88,8 @@ export default function Minesweeper() {
         console.log("Game over: player wins");
         setGameEnd(() => true);
         setVictory(() => true);
+        // End timer
+        setTimerRunning(() => false);
       }
     }
   }, [mines, flagCount, board, flag]);
@@ -89,6 +124,7 @@ export default function Minesweeper() {
 
   const handleNewGame = () => {
     setRunning(() => false);
+    resetTimer();
   };
 
   const handleGameStart = () => {
@@ -124,6 +160,9 @@ export default function Minesweeper() {
     setRunning(() => true);
     setGameEnd(() => false);
     setVictory(() => false);
+
+    // Start timer
+    startTimer();
   };
 
   const contains = (arr: number[][], row: number, col: number) => {
@@ -164,6 +203,8 @@ export default function Minesweeper() {
       // If cell is a mine, end game
       if (board[row][col] == 9) {
         setGameEnd(() => true);
+        // End timer
+        setTimerRunning(() => false);
         return;
       }
 
@@ -320,9 +361,9 @@ export default function Minesweeper() {
           </>
         ) : (
           <>
-            <Typography variant="body2" gutterBottom>{`Mines remaining: ${
-              mines - flagCount
-            }`}</Typography>
+            <Typography variant="body2" gutterBottom>
+              {`Mines remaining: ${mines - flagCount}. Time Elapsed: ${time}s`}
+            </Typography>
             <Grid
               container
               columns={width}

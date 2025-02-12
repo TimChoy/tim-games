@@ -10,6 +10,6 @@
 - Implement game mechanics
   - Handle first uncovered square
 - Implement board generation validation
-- **Stretch goal:** Implement a timer
+- **Stretch goal:** Implement a leaderboard or save states
 - Implement custom mode
 - Figure out a good implementation for mobile view
